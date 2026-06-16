@@ -2821,7 +2821,7 @@ def generate_gallery(rendered_map: dict, theme_map: dict,
 
 def format_for_output(content: str, input_path: Path, theme: dict,
                       output_dir: Path, vault_root: Path,
-                      output_format: str = "wechat") -> dict:
+                      output_format: str = "wechat", no_h1: bool = False) -> dict:
     """统一格式化入口，支持多种输出格式
 
     Args:
@@ -2837,8 +2837,8 @@ def format_for_output(content: str, input_path: Path, theme: dict,
 
     # 通用预处理
     content = strip_frontmatter(content)
-    # frontmatter title 但无 H1 → 注入 H1，让 hero 等布局能识别标题区
-    if title and not re.search(r'^#\s+', content, re.MULTILINE):
+    # frontmatter title 但无 H1 → 注入 H1，让 hero 等布局能识别标题区（除非 no_h1）
+    if not no_h1 and title and not re.search(r'^#\s+', content, re.MULTILINE):
         content = f"# {title}\n\n{content}"
     content = fix_cjk_spacing(content)
     content = fix_cjk_bold_punctuation(content)
@@ -2910,6 +2910,7 @@ def main():
                         help="输出格式: wechat(默认), html(标准HTML), plain(纯HTML)")
     parser.add_argument("--smart", action="store_true",
                         help="AI 语义增强：自动分析文章并添加排版标记（需 config.json 配置 smart_api）")
+    parser.add_argument("--no-h1", action="store_true", help="不自动注入 H1 标题")
     parser.add_argument("--font-size", type=int, default=None,
                         help="正文字号（默认15px），如 --font-size 16")
     args = parser.parse_args()
@@ -2949,7 +2950,7 @@ def main():
 
     # 非微信格式：简单输出
     if args.format != "wechat":
-        result = format_for_output(content, input_path, theme, output_dir, vault_root, args.format)
+        result = format_for_output(content, input_path, theme, output_dir, vault_root, args.format, no_h1=args.no_h1)
         out_path = output_dir / f"article.{args.format}.html"
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_html = result["html"]
@@ -2961,8 +2962,8 @@ def main():
 
     # 处理流程
     content = strip_frontmatter(content)
-    # frontmatter title 但无 H1 → 注入 H1，让 hero 等布局能识别标题区
-    if title and not re.search(r'^#\s+', content, re.MULTILINE):
+    # frontmatter title 但无 H1 → 注入 H1（除非 --no-h1）
+    if not args.no_h1 and title and not re.search(r'^#\s+', content, re.MULTILINE):
         content = f"# {title}\n\n{content}"
     content = _auto_detect_byline(content)
     content = process_callouts(content)
