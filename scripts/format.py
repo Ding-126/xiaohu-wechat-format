@@ -1165,23 +1165,6 @@ def inject_dark_mode_attrs(html: str, dark_mode: dict, style_map: dict) -> str:
 
 def _basic_syntax_highlight(code_html: str) -> str:
     """增强语法高亮：注释、字符串、关键字、数字、装饰器、类型"""
-    # 装饰器 @xxx
-    code_html = re.sub(
-        r'(@\w+)',
-        r'<span style="color:#c586c0">\1</span>',
-        code_html
-    )
-    # 单行注释 // ... 和 # ...（排除 URL 中的 ://）
-    code_html = re.sub(
-        r'(?<!:)(//.*?)(<br>|$)',
-        r'<span style="color:#6a9955">\1</span>\2',
-        code_html
-    )
-    code_html = re.sub(
-        r'(#[^{].*?)(<br>|$)',
-        r'<span style="color:#6a9955">\1</span>\2',
-        code_html
-    )
     # f-string: f"..." / f'...'（Python）
     code_html = re.sub(
         r'(f&quot;.*?&quot;|f&#x27;.*?&#x27;|f"[^"<]*?"|f\'[^\'<]*?\')',
@@ -1198,6 +1181,12 @@ def _basic_syntax_highlight(code_html: str) -> str:
     code_html = re.sub(
         r'(&quot;.*?&quot;|&#x27;.*?&#x27;|"[^"<]*?"|\'[^\'<]*?\')',
         r'<span style="color:#ce9178">\1</span>',
+        code_html
+    )
+    # 装饰器 @xxx（放字符串之后，避免 <span style="color:#c586c0"> 被字符串正则误匹配）
+    code_html = re.sub(
+        r'(@\w+)',
+        r'<span style="color:#c586c0">\1</span>',
         code_html
     )
     # 数字（整数和浮点数）
@@ -1237,6 +1226,18 @@ def _basic_syntax_highlight(code_html: str) -> str:
             rf'<span style="color:#4ec9b0">\1</span>',
             code_html
         )
+    # 注释放最后——避免数字/关键字高亮污染
+    # 单行注释 // ... 和 # ...（排除 URL 中的 ://）
+    code_html = re.sub(
+        r'(?<!:)(//.*?)(<br>|$)',
+        r'<span style="color:#6a9955">\1</span>\2',
+        code_html
+    )
+    code_html = re.sub(
+        r'(^[ \t]*#[^{].*?)(<br>|$)',
+        r'<span style="color:#6a9955">\1</span>\2',
+        code_html, flags=re.MULTILINE
+    )
     return code_html
 
 
